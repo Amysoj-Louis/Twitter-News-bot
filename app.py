@@ -5,10 +5,13 @@ import requests
 from bs4 import BeautifulSoup
 import time
 
+user_id = 000000000000000  # Get userid from https://tweeterid.com/
+bearer_token = "<BEARER_TOKEN>"
+consumer_key = "<CONSUMER_KEY>"
+consumer_secret = "<CONSUMER_SECRET>"
+
 
 def init():
-    consumer_key = "<consumer_key>"
-    consumer_secret = "<consumer_secret>"
 
     # Get request token
     request_token_url = "https://api.twitter.com/oauth/request_token?oauth_callback=oob&x_auth_access_type=write"
@@ -52,12 +55,53 @@ def init():
         resource_owner_key=access_token,
         resource_owner_secret=access_token_secret,
     )
-    scrape(oauth)
+    scraper(oauth, bearer_token)
 
 
-def scraper(oauth):
-    previous_tweet = {}
+def bearer_oauth(r):
+    """
+    Method required by bearer token authentication.
+    """
 
+    r.headers["Authorization"] = f"Bearer {bearer_token}"
+    r.headers["User-Agent"] = "v2UserTweetsPython"
+    return r
+
+
+def previous_tweet():
+    # Replace with user ID below
+    user_id = 1452649076307087360
+    url = "https://api.twitter.com/2/users/{}/tweets".format(user_id)
+
+    # Tweet fields are adjustable.
+    # Options include:
+    # attachments, author_id, context_annotations,
+    # conversation_id, created_at, entities, geo, id,
+    # in_reply_to_user_id, lang, non_public_metrics, organic_metrics,
+    # possibly_sensitive, promoted_metrics, public_metrics, referenced_tweets,
+    # source, text, and withheld
+    params = {"tweet.fields": "text"}
+    response = requests.request(
+        "GET", url, auth=bearer_oauth, params=params)
+    print(response.status_code)
+    if response.status_code != 200:
+        raise Exception(
+            "Request returned an error: {} {}".format(
+                response.status_code, response.text
+            )
+        )
+    # checking if this is the first post
+    if response.json() != {'meta': {'result_count': 0}}:
+        # Since twitter changes html to small url I am splitting at \n to match to new payload
+        previous_tweet_text = response.json()["data"][0]["text"].split("\n")[0]
+        previous_payload = {"text": f"{previous_tweet_text}"}
+    else:
+        previous_payload = {"text": f""}
+
+    return previous_payload
+
+
+def scraper(oauth, bearer_token):
     while True:
         page = requests.get(
             "https://www.reuters.com/business/future-of-money/")
@@ -70,9 +114,9 @@ def scraper(oauth):
         # Be sure to add replace the text of the with the text you wish to Tweet. You can also add parameters to post polls, quote Tweets, Tweet with reply settings, and Tweet to Super Followers in addition to other features.
         payload = {
             "text": f"{top_post}\nSource:https://www.reuters.com/business/future-of-money/"}
-
-        if previous_tweet != payload:
-            previous_tweet = payload
+        current_checker_payload = {"text": payload["text"].split("\n")[0]}
+        previous_payload = previous_tweet()
+        if previous_payload != current_checker_payload:
             tweet(payload, oauth)
         else:
             print("Content hasn't changed")
