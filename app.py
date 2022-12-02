@@ -69,8 +69,6 @@ def bearer_oauth(r):
 
 
 def previous_tweet():
-    # Replace with user ID below
-    user_id = 1452649076307087360
     url = "https://api.twitter.com/2/users/{}/tweets".format(user_id)
 
     # Tweet fields are adjustable.
