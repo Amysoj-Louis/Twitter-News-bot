@@ -1,4 +1,4 @@
-# Twitter API #
+# Twitter News bot #
 
 Hi, I have created an bot that scrapes [moneycontrol.com](https://www.moneycontrol.com/) and creates an tweet if content is changed.
 
